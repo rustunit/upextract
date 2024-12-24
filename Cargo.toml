@@ -1,6 +1,6 @@
 [package]
 name = "upextract"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["extrawurst <mail@rusticorn.com>"]
 description = "UnityPackage Asset extract tool"
@@ -14,4 +14,5 @@ keywords = ["cli", "terminal", "ui"]
 [dependencies]
 anyhow = "1.0.95"
 clap = { version = "4.5.23", features = ["derive"] }
+dirs = "5.0.1"
 tempfile = "3.14"
