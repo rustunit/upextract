@@ -2,6 +2,8 @@
 
 UnityPackage Asset extract tool.
 
+[![demo](https://asciinema.org/a/696012.svg)](https://asciinema.org/a/696012?autoplay=1)
+
 ## Requirements
 
 * `rust` installed (cargo specfically)
