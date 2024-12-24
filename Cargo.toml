@@ -2,6 +2,14 @@
 name = "upextract"
 version = "0.1.0"
 edition = "2021"
+authors = ["extrawurst <mail@rusticorn.com>"]
+description = "UnityPackage Asset extract tool"
+homepage = "https://github.com/rustunit/upextract"
+repository = "https://github.com/rustunit/upextract"
+readme = "README.md"
+license = "MIT"
+categories = ["command-line-utilities"]
+keywords = ["cli", "terminal", "ui"]
 
 [dependencies]
 anyhow = "1.0.95"
