@@ -57,6 +57,19 @@ Options:
   -h, --help                           Print help
 ```
 
+### upextract inspect
+
+```sh
+List contents of a unitypackage
+
+Usage: upextract inspect [OPTIONS] --bundle <BUNDLE>
+
+Options:
+  -b, --bundle <BUNDLE>  unitybundle
+      --tmp <TMP>        Tmp folder to extract to. (defaults to use system tmp)
+  -h, --help             Print help
+```
+
 ## Example
 
 ```sh
