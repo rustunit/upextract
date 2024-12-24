@@ -15,6 +15,21 @@ cargo install upextract
 
 ## Usage
 
+```sh
+UnityPackage Asset extract tool
+
+Usage: upextract <COMMAND>
+
+Commands:
+  extract  Extracts contents of a unitypackage
+  list     Lists unitypackages in the Unity Asset Store folder
+  help     Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
 ### upextract extract
 
 ```sh

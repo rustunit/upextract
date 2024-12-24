@@ -11,6 +11,7 @@ use clap::{Parser, Subcommand};
 use tempfile::tempdir;
 
 #[derive(Parser)]
+#[command(version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -19,6 +20,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Extract(Extract),
+    #[command(about = "Lists unitypackages in the Unity Asset Store folder")]
     List {
         #[arg(long, help = "Unity Asset Store folder")]
         assets_folder: Option<String>,
@@ -26,6 +28,7 @@ enum Commands {
 }
 
 #[derive(Parser)]
+#[command(about = "Extracts contents of a unitypackage")]
 struct Extract {
     #[arg(long, short, help = "unitybundle")]
     bundle: String,
