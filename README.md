@@ -23,6 +23,7 @@ Usage: upextract <COMMAND>
 Commands:
   extract  Extracts contents of a unitypackage
   list     Lists unitypackages in the Unity Asset Store folder
+  inspect  List contents of a unitypackage
   help     Print this message or the help of the given subcommand(s)
 
 Options:

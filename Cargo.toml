@@ -1,6 +1,6 @@
 [package]
 name = "upextract"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 authors = ["extrawurst <mail@rusticorn.com>"]
 description = "UnityPackage Asset extract tool"

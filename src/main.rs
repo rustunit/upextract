@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     fs,
     io::Read,
     path::{Path, PathBuf},
@@ -25,6 +25,18 @@ enum Commands {
         #[arg(long, help = "Unity Asset Store folder")]
         assets_folder: Option<String>,
     },
+    #[command(about = "List contents of a unitypackage")]
+    Inspect(Inspect),
+}
+
+#[derive(Parser)]
+#[command(about = "Extracts contents of a unitypackage")]
+struct Inspect {
+    #[arg(long, short, help = "unitybundle")]
+    bundle: String,
+
+    #[arg(long, help = "Tmp folder to extract to. (defaults to use system tmp)")]
+    tmp: Option<String>,
 }
 
 #[derive(Parser)]
@@ -64,9 +76,53 @@ fn main() {
     let args = Cli::parse();
 
     match args.command {
-        Commands::Extract(args) => extract(args),
+        Commands::Extract(args) => extract_cmd(args),
         Commands::List { assets_folder } => list(assets_folder),
+        Commands::Inspect(args) => inspect(args),
     }
+}
+
+fn inspect(args: Inspect) {
+    let mut types: HashMap<String, usize> = HashMap::new();
+
+    let (tmp, folder) = tmp_folder(args.tmp.as_ref());
+
+    unpack(args.bundle.clone(), folder.as_path()).unwrap();
+
+    for entry in fs::read_dir(folder).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            inspect_asset(&path, &mut types).unwrap();
+        }
+    }
+
+    if let Some(tmp) = tmp {
+        println!("Cleaning up tmp folder");
+        tmp.close().unwrap();
+    }
+
+    println!("\nContents of unitypackage: {}", args.bundle.clone());
+
+    for (k, v) in types.iter() {
+        println!("{}: {}", k, v);
+    }
+}
+
+fn inspect_asset(path: &Path, types: &mut HashMap<String, usize>) -> anyhow::Result<()> {
+    let pathname = asset_folder_pathname(path)?;
+
+    let Some(pathname) = pathname else {
+        return Ok(());
+    };
+
+    if let Some(extension) = pathname.extension() {
+        let count = types
+            .entry(extension.to_string_lossy().to_string())
+            .or_insert(0);
+        *count += 1;
+    }
+
+    Ok(())
 }
 
 fn list(assets_folder: Option<String>) {
@@ -103,16 +159,10 @@ fn is_package(as_path: &Path) -> bool {
         .map_or(false, |ext| ext == "unitypackage")
 }
 
-fn extract(args: Extract) {
-    let (tmp, folder) = if let Some(tmp) = args.tmp.as_ref() {
-        (None, PathBuf::from(tmp))
-    } else {
-        let tmp = tempdir().unwrap();
-        let folder = tmp.path().to_path_buf();
-        (Some(tmp), folder)
-    };
+fn extract_cmd(args: Extract) {
+    let (tmp, folder) = tmp_folder(args.tmp.as_ref());
 
-    if let Err(e) = unpack(
+    if let Err(e) = extract(
         args.bundle.clone(),
         folder.as_path(),
         PathBuf::from(args.out).as_path(),
@@ -127,26 +177,25 @@ fn extract(args: Extract) {
     }
 }
 
-fn unpack(
+fn tmp_folder(tmp: Option<&String>) -> (Option<tempfile::TempDir>, PathBuf) {
+    let (tmp, folder) = if let Some(tmp) = tmp.as_ref() {
+        (None, PathBuf::from(tmp))
+    } else {
+        let tmp = tempdir().unwrap();
+        let folder = tmp.path().to_path_buf();
+        (Some(tmp), folder)
+    };
+    (tmp, folder)
+}
+
+fn extract(
     file: String,
     tmp: &Path,
     output: &Path,
     flatten: bool,
     include: Option<HashSet<String>>,
 ) -> anyhow::Result<()> {
-    println!("Unpacking '{}' to '{}'", file, tmp.display());
-
-    let out = Command::new("tar")
-        .arg("zxvf")
-        .arg(file)
-        .arg("-C")
-        .arg(tmp)
-        .output()
-        .context("untar")?;
-
-    if !out.status.success() {
-        bail!("Error unpacking: {}", String::from_utf8_lossy(&out.stderr));
-    }
+    unpack(file, tmp)?;
 
     println!("Extracting assets");
 
@@ -172,28 +221,40 @@ fn unpack(
     Ok(())
 }
 
+fn unpack(file: String, tmp: &Path) -> Result<(), anyhow::Error> {
+    println!("Unpacking '{}' to '{}'", file, tmp.display());
+
+    let out = Command::new("tar")
+        .arg("zxvf")
+        .arg(file)
+        .arg("-C")
+        .arg(tmp)
+        .output()
+        .context("untar")?;
+
+    if !out.status.success() {
+        bail!("Error unpacking: {}", String::from_utf8_lossy(&out.stderr));
+    }
+
+    Ok(())
+}
+
 fn handle_asset(
     path: &Path,
     output: &Path,
     flatten: bool,
     include: Option<&HashSet<String>>,
 ) -> anyhow::Result<bool> {
-    let asset = path.join("asset");
+    let pathname = asset_folder_pathname(path)?;
 
-    if !asset.exists() {
+    let Some(pathname) = pathname else {
         return Ok(false);
-    }
-
-    let pathname = {
-        let mut buf = String::new();
-        fs::File::open(path.join("pathname"))?.read_to_string(&mut buf)?;
-        buf.lines().next().unwrap().to_string()
     };
 
     let out_path = if !flatten {
         output.join(pathname)
     } else {
-        output.join(pathname.replace("/", "_"))
+        output.join(pathname.to_str().unwrap().replace("/", "_"))
     };
 
     let Some(extension) = out_path.extension() else {
@@ -205,13 +266,7 @@ fn handle_asset(
     }) {
         println!(
             "Skipping {:?} - {:?}",
-            asset
-                .parent()
-                .unwrap()
-                .components()
-                .last()
-                .unwrap()
-                .as_os_str(),
+            path.components().last().unwrap().as_os_str(),
             out_path.file_name().unwrap()
         );
         return Ok(false);
@@ -219,7 +274,23 @@ fn handle_asset(
 
     fs::create_dir_all(out_path.parent().unwrap())?;
 
-    fs::copy(asset, out_path).context("copy asset failed")?;
+    fs::copy(path.join("asset"), out_path).context("copy asset failed")?;
 
     Ok(true)
+}
+
+fn asset_folder_pathname(path: &Path) -> Result<Option<PathBuf>, anyhow::Error> {
+    let asset = path.join("asset");
+
+    if !asset.exists() {
+        return Ok(None);
+    }
+
+    let pathname = {
+        let mut buf = String::new();
+        fs::File::open(path.join("pathname"))?.read_to_string(&mut buf)?;
+        PathBuf::from(buf.lines().next().unwrap())
+    };
+
+    Ok(Some(pathname))
 }
