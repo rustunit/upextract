@@ -11,15 +11,24 @@ use tempfile::tempdir;
 
 #[derive(Parser, Debug)]
 struct Arguments {
-    #[arg(long, help = "unitybundle")]
+    #[arg(long, short, help = "unitybundle")]
     bundle: String,
 
     #[arg(
         long,
+        short,
         default_value_t = String::from("out"),
         help = "Output folder",
     )]
     out: String,
+
+    #[arg(
+        long,
+        short,
+        default_value_t = false,
+        help = "Flatten folder structure"
+    )]
+    flatten: bool,
 
     #[arg(long, help = "Tmp folder to extract to. (defaults to use system tmp)")]
     tmp: Option<String>,
@@ -40,7 +49,7 @@ fn main() {
         args.bundle.clone(),
         folder.as_path(),
         PathBuf::from(args.out).as_path(),
-        true,
+        args.flatten,
     ) {
         println!("Error: {:?}", e);
     }

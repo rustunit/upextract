@@ -1,6 +1,6 @@
 # upextract
 
-UnityPackage Asset extract tool
+UnityPackage Asset extract tool.
 
 ## Requirements
 
@@ -19,8 +19,9 @@ cargo install upextract
 Usage: upextract [OPTIONS] --bundle <BUNDLE>
 
 Options:
-      --bundle <BUNDLE>  unitybundle
-      --out <OUT>        Output folder [default: out]
+  -b, --bundle <BUNDLE>  unitybundle
+  -o, --out <OUT>        Output folder [default: out]
+  -f, --flatten          Flatten folder structure
       --tmp <TMP>        Tmp folder to extract to. (defaults to use system tmp)
   -h, --help             Print help
 ```
@@ -28,7 +29,7 @@ Options:
 ## Example
 
 ```sh
-upextract --bundle demoasset/test.unitypackage
+upextract -b demoasset/test.unitypackage
 # or
-upextract --bundle demoasset/test.unitypackage --out output
+upextract -b demoasset/test.unitypackage -o output
 ```
